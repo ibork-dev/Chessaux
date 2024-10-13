@@ -1,5 +1,11 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet, Animated, PanResponder, Dimensions } from 'react-native';
+import { Camera } from 'react-native-vision-camera';
+import {
+  useCameraDevice,
+  useCameraPermission
+} from 'react-native-vision-camera'
+import { PermissionsPage } from './permissionspage'
 
 const GameScreen = () => {
   const screenHeight = Dimensions.get('window').height;
@@ -21,6 +27,12 @@ const GameScreen = () => {
     })
   ).current;
 
+  const device = useCameraDevice('back')
+  const { hasPermission, requestPermission } = useCameraPermission()
+
+  //if (!hasPermission) return <PermissionsPage />
+  //if (device == null) return <NoCameraDeviceError />
+
   return (
     <View style={styles.container}>
       {/* Top Section */}
@@ -35,7 +47,13 @@ const GameScreen = () => {
       {/* Bottom Section */}
       <Animated.View
         style={[styles.bottomSection, { height: Animated.subtract(screenHeight, splitValue) }]}
-      />
+      >
+          <Camera
+            style={StyleSheet.absoluteFill}
+            device={device}
+            isActive={true}
+          />
+      </Animated.View>
     </View>
   );
 };
