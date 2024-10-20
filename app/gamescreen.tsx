@@ -1,13 +1,18 @@
 import React, { useRef } from 'react';
+import { useEffect } from 'react';
 import { View, StyleSheet, Animated, PanResponder, Dimensions } from 'react-native';
 import { Camera } from 'react-native-vision-camera';
 import {
   useCameraDevice,
-  useCameraPermission
+  useCameraPermission,
+  useFrameProcessor
 } from 'react-native-vision-camera'
 import { PermissionsPage } from './permissionspage'
 
 const GameScreen = () => {
+
+  const processigFPS = 10;
+
   const screenHeight = Dimensions.get('window').height;
   const splitValue = useRef(new Animated.Value(screenHeight / 2)).current;
 
@@ -30,6 +35,40 @@ const GameScreen = () => {
   const device = useCameraDevice('back')
   const { hasPermission, requestPermission } = useCameraPermission()
 
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet'
+    const objects = detectObjects(frame)
+    const label = objects[0].name
+    console.log(`You're looking at a ${label}.`)
+  }, [])
+
+  useEffect(() => {
+    const getPermissions = async () => {
+      // Check the current camera permission status
+      const cameraPermission = await Camera.getCameraPermissionStatus();
+
+      if (cameraPermission !== 'authorized') {
+        // Request camera permission if not authorized
+        const newCameraPermission = await Camera.requestCameraPermission();
+        if (newCameraPermission !== 'authorized') {
+          console.log('Camera permission was denied!');
+          // Handle the permission denial
+          return;
+        }
+        if (newCameraPermission === 'denied') {
+          alert('Camera access is required to use this feature. Please enable it in settings.');
+          // Optionally redirect the user to the settings page
+        }
+      }
+      
+
+      // The camera permission is authorized, you can now access the camera
+      console.log('Camera permission granted!');
+    };
+
+    getPermissions();
+  }, []);
+
   //if (!hasPermission) return <PermissionsPage />
   //if (device == null) return <NoCameraDeviceError />
 
@@ -49,9 +88,11 @@ const GameScreen = () => {
         style={[styles.bottomSection, { height: Animated.subtract(screenHeight, splitValue) }]}
       >
           <Camera
-            style={StyleSheet.absoluteFill}
+            style={{ flex: 1 }}
             device={device}
             isActive={true}
+            frameProcessor={frameProcessor}
+            frameProcessorFps={processigFPS}
           />
       </Animated.View>
     </View>
